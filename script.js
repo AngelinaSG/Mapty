@@ -63,6 +63,7 @@ class Cycling extends Workout {
 class App {
   #map;
   #mapZoomLevel = 15;
+  #coords;
   #mapEvent;
   #workouts = [];
 
@@ -92,24 +93,25 @@ class App {
   _loadMap(position) {
     const { latitude, longitude } = position.coords;
 
-    const coords = [latitude, longitude];
+    this.#coords = [latitude, longitude];
 
-    this.#map = L.map('map').setView(coords, this.#mapZoomLevel);
+    this.#map = L.map('map').setView(this.#coords, this.#mapZoomLevel);
 
     L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     }).addTo(this.#map);
 
-    L.marker(coords).addTo(this.#map)
+    L.marker(this.#coords).addTo(this.#map)
       .bindPopup('This is your current position 🧭')
       .openPopup();
-
 
     this.#map.on('click', this._showForm.bind(this));
 
     this.#workouts.forEach(w => {
       this._renderWorkoutMarker(w);
+      this._renderWorkoutPolyline(w);
     })
+
   }
 
   _showForm(mapE) {
@@ -172,12 +174,23 @@ class App {
 
     this._renderWorkoutMarker(workout);
 
+    this._renderWorkoutPolyline(workout);
+
     this._renderWorkout(workout);
 
     this._hideForm();
 
     this._setLocalStorage();
 
+  }
+
+  _renderWorkoutPolyline(workout) {
+    const latlngs = [
+      [...this.#coords],
+      [...workout.coords],
+    ];
+    const polyline = L.polyline(latlngs, {color: `${workout.type === 'running' ? 'green' : 'orange'}`}).addTo(this.#map);
+    this.#map.fitBounds(polyline.getBounds());
   }
 
   _renderWorkoutMarker(workout) {
